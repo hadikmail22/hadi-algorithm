@@ -1,0 +1,165 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
+#include <algorithm>
+
+using namespace std;
+using namespace std::chrono;
+
+// ---------- Data Generators ----------
+
+vector<int> generateRandomArray(long long size, int min = 0, int max = 1000000) {
+    vector<int> arr(size);
+    for (long long i = 0; i < size; ++i)
+        arr[i] = min + rand() % (max - min + 1);
+    return arr;
+}
+
+vector<int> generateSortedArray(long long size) {
+    vector<int> arr = generateRandomArray(size);
+    sort(arr.begin(), arr.end());
+    return arr;
+}
+
+vector<int> generateReverseArray(long long size) {
+    vector<int> arr = generateSortedArray(size);
+    reverse(arr.begin(), arr.end());
+    return arr;
+}
+
+vector<int> generatePartiallySortedArray(long long size, double sorted_ratio = 0.7) {
+    vector<int> arr = generateRandomArray(size);
+    long long sorted_size = static_cast<long long>(size * sorted_ratio);
+    sort(arr.begin(), arr.begin() + sorted_size);
+    return arr;
+}
+
+// ---------- Sorting Algorithms ----------
+
+void bubbleSort(vector<int>& arr) {
+    long long n = arr.size();
+    for (long long i = 0; i < n - 1; ++i)
+        for (long long j = 0; j < n - i - 1; ++j)
+            if (arr[j] > arr[j + 1])
+                swap(arr[j], arr[j + 1]);
+}
+
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    for (int j = low; j < high; ++j) {
+        if (arr[j] < pivot) {
+            ++i;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+void quickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+void merge(vector<int>& arr, int left, int mid, int right) {
+    int n1 = mid - left + 1, n2 = right - mid;
+    vector<int> L(n1), R(n2);
+    for (int i = 0; i < n1; ++i) L[i] = arr[left + i];
+    for (int i = 0; i < n2; ++i) R[i] = arr[mid + 1 + i];
+
+    int i = 0, j = 0, k = left;
+    while (i < n1 && j < n2)
+        arr[k++] = (L[i] <= R[j]) ? L[i++] : R[j++];
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+}
+
+void mergeSort(vector<int>& arr, int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+
+// ---------- Main ----------
+
+int main() {
+    srand(time(0));
+    vector<long long> inputSizes;
+    string filename;
+
+    cout << "Enter input filename (or press Enter to skip): ";
+    getline(cin, filename);
+
+    if (!filename.empty()) {
+        ifstream inFile(filename);
+        if (!inFile) {
+            cerr << "Failed to open file.\n";
+            return 1;
+        }
+        long long size;
+        while (inFile >> size)
+            inputSizes.push_back(size);
+        inFile.close();
+    } else {
+        int count;
+        cout << "How many input sizes do you want to test? ";
+        cin >> count;
+        for (int i = 0; i < count; ++i) {
+            long long size;
+            cout << "Enter size " << i + 1 << ": ";
+            cin >> size;
+            inputSizes.push_back(size);
+        }
+    }
+
+    vector<string> dataTypes = {"Random", "Sorted", "Reverse", "Partial"};
+
+    for (long long size : inputSizes) {
+        for (int type = 1; type <= 4; ++type) {
+            cout << "\n=== Input Size: " << size << " | Data Type: " << dataTypes[type - 1] << " ===\n";
+
+            vector<int> baseArr;
+            switch (type) {
+                case 1: baseArr = generateRandomArray(size); break;
+                case 2: baseArr = generateSortedArray(size); break;
+                case 3: baseArr = generateReverseArray(size); break;
+                case 4: baseArr = generatePartiallySortedArray(size); break;
+            }
+
+            // Bubble Sort (optional - uncomment to include)
+            
+            vector<int> arr1 = baseArr;
+            auto start1 = high_resolution_clock::now();
+            bubbleSort(arr1);
+            auto end1 = high_resolution_clock::now();
+            cout << "Bubble Sort Time: " << duration_cast<milliseconds>(end1 - start1).count() << " ms\n";
+            
+
+            // Quick Sort
+            vector<int> arr2 = baseArr;
+            auto start2 = high_resolution_clock::now();
+            quickSort(arr2, 0, arr2.size() - 1);
+            auto end2 = high_resolution_clock::now();
+            cout << "Quick Sort Time: " << duration_cast<milliseconds>(end2 - start2).count() << " ms\n";
+
+            // Merge Sort
+            vector<int> arr3 = baseArr;
+            auto start3 = high_resolution_clock::now();
+            mergeSort(arr3, 0, arr3.size() - 1);
+            auto end3 = high_resolution_clock::now();
+            cout << "Merge Sort Time: " << duration_cast<milliseconds>(end3 - start3).count() << " ms\n";
+        }
+    }
+
+    return 0;
+}
